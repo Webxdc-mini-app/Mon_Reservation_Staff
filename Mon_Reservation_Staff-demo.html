@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>門 スタッフ共有予約台帳</title><style>
+:root{font-family:system-ui,"Yu Gothic",sans-serif;color:#252b27;background:#f8f3e9;line-height:1.6;font-size:15px}*{box-sizing:border-box}body{margin:0}header{background:#2f3e36;color:#fff9ef;padding:30px max(20px,calc((100vw - 1060px)/2))}.brand{font-family:serif;font-size:32px}.brand small{font-family:system-ui;font-size:10px;letter-spacing:2px;margin-left:12px}h1{font-size:25px;margin:8px 0}header p{opacity:.8;margin:4px 0 16px}#sync{font-size:12px;color:#e9d9a8}main{max-width:1100px;margin:auto;padding:24px 20px}section,details{background:#fffcf6;border:1px solid #ded9cc;border-radius:14px;padding:22px;margin-top:20px}h2{font-size:20px;margin:0 0 16px;font-family:serif}.notice{border-left:4px solid #b79544;padding:8px 14px;font-size:13px;background:#efe7d5}nav,.actions,.section-top,.filters{display:flex;align-items:center;gap:12px;flex-wrap:wrap}nav{margin-top:20px}#staff{font-size:13px;color:#60665f}.section-top{justify-content:space-between}.section-top h2{margin:0}.fields{display:grid;grid-template-columns:1fr 1fr;gap:16px}.wide{grid-column:1/-1}label{display:block;font-size:12px;font-weight:600}input,select,textarea{display:block;width:100%;font:inherit;font-weight:400;font-size:15px;color:inherit;background:#fff;border:1px solid #bcbeb4;border-radius:7px;padding:10px;margin-top:5px}input:focus,select:focus,textarea:focus{outline:2px solid #b79544;outline-offset:1px}button{font:inherit;font-size:13px;border:1px solid #2f3e36;border-radius:7px;padding:10px 16px;background:#2f3e36;color:#fff;cursor:pointer}button.secondary{color:#2f3e36;background:transparent;border-color:#bcbeb4}button:disabled{opacity:.45;cursor:default}.filters{align-items:flex-end;padding:20px 0}.search{flex:1;min-width:180px}.reservation{border-top:1px solid #ded9cc;padding:18px 0}.reservation:first-child{border-top:0}.reservation h3{font-size:17px;margin:0}.reservation .meta{font-size:13px;color:#5c635c;margin:7px 0;white-space:pre-wrap;overflow-wrap:anywhere}.reservation .note{background:#f4efe3;padding:10px;border-radius:6px;white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px}.badge{font-size:12px;border-radius:20px;padding:3px 10px;background:#eee3be;display:inline-block;margin-left:8px}.badge.confirmed{background:#d8e8dc}.badge.cancelled{background:#e8e6e2}.muted,#counts{font-size:12px;color:#686e68}.empty{padding:26px 0;color:#686e68}#message{margin:16px 0;padding:12px;border:1px solid #b79544;background:#fff5d7;border-radius:7px;white-space:pre-wrap}details{font-size:13px}summary{cursor:pointer;font-weight:600}footer{max-width:1100px;margin:auto;padding:0 20px 28px;font-size:12px;color:#686e68}[hidden]{display:none!important}@media(max-width:600px){header{padding:22px 18px}main{padding:16px 12px}section,details{padding:16px}.fields{grid-template-columns:1fr}.filters label{flex:1;min-width:130px}h1{font-size:22px}.actions button{flex:1}}
+
+</style><script>window.staffBootErrors=[];window.addEventListener("error",function(e){var msg=e.message||("読み込み失敗: "+(e.target&&e.target.src||"不明"));window.staffBootErrors.push(msg);var box=document.getElementById("boot-error");if(box){box.hidden=false;box.textContent="起動エラー: "+msg;}} ,true);</script><script>
+/* ブラウザデモ用 webxdc モック: 同一ブラウザの複数タブ間で更新を共有します */
+(function(){
+  var KEY="webxdc_mon_demo_updates", ch=null, listener=null, last=0, mem=[];
+  try{ch=new BroadcastChannel("webxdc_mon_demo")}catch(e){}
+  function load(){try{return JSON.parse(localStorage.getItem(KEY)||"[]")}catch(e){return mem}}
+  function save(a){mem=a;try{localStorage.setItem(KEY,JSON.stringify(a))}catch(e){}}
+  var id;try{id=sessionStorage.getItem("mon_demo_id");if(!id){id=Math.random().toString(36).slice(2,6);sessionStorage.setItem("mon_demo_id",id)}}catch(e){id=Math.random().toString(36).slice(2,6)}
+  function deliver(){
+    if(!listener)return;
+    var a=load();
+    while(last<a.length){var u=a[last];last++;
+      listener({payload:u.payload,serial:last,max_serial:a.length,info:u.info,document:u.document})}
+  }
+  window.webxdc={
+    selfAddr:"demo-"+id+"@example.invalid",
+    selfName:"スタッフ-"+id.toUpperCase(),
+    sendUpdateInterval:0,
+    sendUpdateMaxSize:128000,
+    sendUpdate:function(up){
+      var a=load();a.push({payload:up.payload,info:up.info,document:up.document});save(a);
+      if(ch)ch.postMessage(1);
+      setTimeout(deliver,0);
+    },
+    setUpdateListener:function(cb,serial){
+      listener=cb;last=serial||0;setTimeout(deliver,0);
+      return Promise.resolve();
+    }
+  };
+  if(ch)ch.onmessage=deliver;
+  window.addEventListener("storage",function(e){if(e.key===KEY)deliver()});
+})();
+</script></head>
+<body><header><div class="brand">門 <small>MON · STAFF RESERVATIONS</small></div><h1>スタッフ共有予約台帳</h1><p>電話・個別チャット・店頭で受けた予約を、スタッフ全員で引き継ぐ。</p><div id="sync" role="status">共有履歴を読み込んでいます…</div></header>
+<main><p id="boot-error" role="alert" hidden></p><section id="diagnostic"><h2>端末間の通信テスト</h2><p>両端末でこの欄を開いたまま、片方で「テスト番号を送る」を押してください。もう片方の「受信したテスト番号」に同じ番号が出るか確認します。予約は作成されません。</p><button id="probe" disabled>テスト番号を送る</button><p id="probe-result" role="status">テスト未実施</p><p>受信したテスト番号</p><ul id="probe-list"><li>まだありません</li></ul><details><summary>詳しい診断情報</summary><p>以下を選択・コピーしてお知らせください。予約の氏名・連絡先・メモは含みません。</p><textarea id="diagnostic-report" readonly rows="12" aria-label="診断情報"></textarea></details></section><aside class="notice">スタッフ専用グループで使ってください。この台帳の氏名・連絡先・メモは参加者全員に共有されます。全端末で同じメッセージの台帳を開いてください。</aside><div id="message" role="alert" hidden></div>
+<nav><button id="new" disabled>＋ 予約を登録</button><span id="staff"></span></nav>
+<section id="editor" hidden><h2 id="form-title">予約を登録</h2><form id="form"><div class="fields">
+<label>お客様名 <input name="customerName" required maxlength="80" autocomplete="off"></label>
+<label>連絡先（電話など）<input name="contact" maxlength="120" autocomplete="off" placeholder="折り返し先・個別チャットの相手など"></label>
+<label>来店日 <input name="date" type="date" required></label><label>来店時刻 <input name="time" type="time" required></label>
+<label>人数 <input name="people" type="number" min="1" max="999" value="2" required></label>
+<label>コース <input name="course" maxlength="80" placeholder="席のみ・おまかせなど"></label>
+<label>受付経路 <select name="source"><option>電話</option><option>個別チャット</option><option>店頭</option><option>その他</option></select></label>
+<label>予約状態 <select name="status"><option value="pending">確認待ち</option><option value="confirmed">確定</option><option value="cancelled">取消</option></select></label>
+<label class="wide">引継ぎメモ <textarea name="note" rows="3" maxlength="2000" placeholder="アレルギー・席の希望・折り返し事項など"></textarea></label></div>
+<p id="editing-info" class="muted"></p><div class="actions"><button type="submit" id="save">登録して共有</button><button type="button" id="close" class="secondary">閉じる</button></div></form></section>
+<section><div class="section-top"><h2>予約一覧</h2><span id="counts"></span></div><div class="filters"><label>来店日 <input id="day" type="date"></label><button id="today" class="secondary">今日</button><button id="all" class="secondary">全日程</button><label>状態 <select id="status"><option value="active">有効な予約</option><option value="all">すべて</option><option value="pending">確認待ち</option><option value="confirmed">確定</option><option value="cancelled">取消</option></select></label><label class="search">検索 <input id="search" type="search" placeholder="氏名・連絡先・メモ・受付スタッフ"></label></div><div id="list"></div><div id="pager" class="actions" hidden><button id="previous" class="secondary">前の50件</button><span id="page-state"></span><button id="next" class="secondary">次の50件</button></div></section>
+<details><summary>共有台帳の使い方</summary><ol><li>このアプリをスタッフ専用グループに一度送信します。</li><li>全員が、その同じメッセージから台帳を開きます。</li><li>予約を受けたスタッフが登録します。確認待ち／確定を選び、必要な引継ぎを記録します。</li><li>変更や取消もこの台帳から行います。お客様への連絡は担当者が電話・個別チャットで行ってください。</li></ol><p>共有はDelta Chatの通信後に反映されます。画面の「共有履歴を反映済み」は他端末への配達確認ではありません。同じ予約を同時に編集した場合は、受信した更新順で反映されます。入力中に対象の予約が更新された場合は保存を止めます。</p><p>満席・重複時間の判定は行いません。空席を確認してから確定してください。アプリからお客様に自動通知は送りません。</p></details>
+</main><footer>門 -MON- · スタッフ共有予約台帳 1.3.2 共有確認版</footer><script>
+(function(root){
+  'use strict';
+  const statuses=['pending','confirmed','cancelled'];
+  function valid(r){return r&&typeof r.id==='string'&&typeof r.customerName==='string'&&r.customerName.trim()&&/^\d{4}-\d{2}-\d{2}$/.test(r.date)&&/^\d{2}:\d{2}$/.test(r.time)&&Number.isInteger(r.people)&&r.people>0&&statuses.includes(r.status);}
+  function reduce(rows,p){
+    if(!p||typeof p!=='object')return rows;
+    if(p.type==='reservation_create'){
+      if(!valid(p.data)||rows.some(r=>r.id===p.data.id))return rows;
+      return [...rows,{...p.data}];
+    }
+    if(p.type==='reservation_update'&&p.data&&valid(p.data))return rows.map(r=>r.id===p.data.id?{...r,...p.data}:r);
+    if(p.type==='reservation_status'&&statuses.includes(p.status))return rows.map(r=>r.id===p.id?{...r,status:p.status,updatedBy:p.updatedBy||r.updatedBy,updatedAt:p.updatedAt||r.updatedAt}:r);
+    return rows;
+  }
+  const api={reduce,valid,statuses};
+  if(typeof module==='object'&&module.exports)module.exports=api;else root.ReservationLedger=api;
+})(typeof window==='object'?window:globalThis);
+
+</script>
+<script>
+(function(root){
+  'use strict';
+  root.StaffTransport=function(api,onState){
+    let nextAt=0,tail=Promise.resolve();
+    const interval=Number.isFinite(api.sendUpdateInterval)&&api.sendUpdateInterval>=0?api.sendUpdateInterval:10000;
+    return function(update){
+      const operation=tail.then(async()=>{
+        const wait=Math.max(0,nextAt-Date.now());
+        if(wait){onState('送信間隔待ち');await new Promise(resolve=>setTimeout(resolve,wait));}
+        onState('送信APIを呼び出し');
+        nextAt=Date.now()+interval;
+        await api.sendUpdate(update,'');
+        onState('送信API呼び出し済み');
+      });
+      tail=operation.catch(()=>{});return operation;
+    };
+  };
+})(window);
+
+</script>
+<script>
+(() => {
+  'use strict';
+  const $=id=>document.getElementById(id), form=$('form'), api=window.webxdc;
+  const labels={pending:'確認待ち',confirmed:'確定',cancelled:'取消'};
+  let rows=[],ready=false,editing=null,base='',pending=null,timer,pageIndex=0;
+  const pageSize=50;
+  const name=api?.selfName||'スタッフ';
+  const diag={version:'1.3.2',api:!!api,ready:false,sendState:'未送信',sendCalls:0,received:0,lastSerial:null,lastType:null,rejected:0,records:0,lastError:'',runtime:navigator.userAgent};
+  try{diag.previousRun=JSON.parse(localStorage.getItem('staff-last-diagnostic')||'null')}catch(ignore){diag.previousRun=null}
+  let ownProbe=null,probeBusy=false,probeTimer,probes=[];
+  function report(){diag.ready=ready;diag.records=rows.length;diag.pendingReservation=!!pending;diag.bootErrors=window.staffBootErrors||[];$('diagnostic-report').value=JSON.stringify(diag,null,2);try{const snapshot={...diag};delete snapshot.previousRun;localStorage.setItem('staff-last-diagnostic',JSON.stringify(snapshot))}catch(ignore){}$('probe').disabled=!ready||!!pending||probeBusy;}
+  const transmit=api?StaffTransport(api,state=>{diag.sendState=state;if(state==='送信APIを呼び出し')diag.sendCalls++;report()}):null;
+  function errorText(err){return String(err?.message||err||'不明なエラー').slice(0,500);}
+  function receiveProbe(payload){
+    if(typeof payload.code!=='string'||!/^[A-Z0-9]{8}$/.test(payload.code))return;
+    if(!probes.includes(payload.code))probes.push(payload.code);probes=probes.slice(-10);
+    $('probe-list').replaceChildren(...probes.map(code=>node('li',code)));
+    if(payload.code===ownProbe){clearTimeout(probeTimer);probeBusy=false;$('probe-result').textContent='送信番号 '+ownProbe+'：この端末の履歴に戻りました。相手側にも同じ番号が出るか確認してください。';report();}
+  }
+  $('probe').onclick=()=>{
+    if(!ready||pending||probeBusy)return;
+    ownProbe=(globalThis.crypto?.randomUUID?.().replace(/-/g,'')||Math.random().toString(16).slice(2).padEnd(8,'0')).slice(0,8).toUpperCase();
+    probeBusy=true;report();$('probe-result').textContent='送信番号 '+ownProbe+'：送信待ち';
+    transmit({payload:{type:'diagnostic_probe',code:ownProbe}}).then(()=>{
+      if(!probeBusy)return;
+      $('probe-result').textContent='送信番号 '+ownProbe+'：履歴への戻りを待っています';
+      probeTimer=setTimeout(()=>{$('probe-result').textContent='送信番号 '+ownProbe+'：この端末にも戻っていません。グループへの送信可否や通信状態を確認してください。';report()},20000);
+    }).catch(err=>{probeBusy=false;diag.lastError=errorText(err);$('probe-result').textContent='テスト送信に失敗：'+diag.lastError;report()});
+  };
+  window.addEventListener('unhandledrejection',event=>{diag.lastError=errorText(event.reason);report()});
+  const today=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`};
+  function message(t){$('message').textContent=t;$('message').hidden=!t;}
+  function controls(){ $('new').disabled=!ready||!!pending; $('save').disabled=!ready||!!pending; $('close').disabled=!!pending; report(); }
+  function node(tag,text,cls){const el=document.createElement(tag);if(text!==undefined)el.textContent=text;if(cls)el.className=cls;return el;}
+  function open(record){
+    editing=record?.id||null;base=record?JSON.stringify(record):'';form.reset();
+    const data=record||{date:today(),time:'19:00',people:2,status:'pending',source:'電話'};
+    for(const field of ['customerName','contact','date','time','people','course','source','status','note'])form.elements[field].value=data[field]??'';
+    if(!form.elements.source.value)form.elements.source.value='その他';
+    $('form-title').textContent=record?'予約を編集':'予約を登録';$('save').textContent=record?'変更して共有':'登録して共有';
+    $('editing-info').textContent=record?`受付：${record.createdBy||'旧版'} ／ 最終更新：${record.updatedBy||record.createdBy||'旧版'}`:`受付スタッフ：${name}`;
+    $('editor').hidden=false;$('editor').scrollIntoView({behavior:'smooth',block:'start'});form.elements.customerName.focus();
+  }
+  function render(){
+    const list=$('list');list.replaceChildren();
+    const term=$('search').value.trim().toLocaleLowerCase(),day=$('day').value,status=$('status').value;
+    const visible=rows.filter(r=>(!day||r.date===day)&&(status==='all'||(status==='active'?r.status!=='cancelled':r.status===status))&&(!term||[r.customerName,r.contact,r.note,r.createdBy,r.updatedBy,r.course,r.source].some(v=>String(v||'').toLocaleLowerCase().includes(term)))).sort((a,b)=>(a.date+' '+a.time).localeCompare(b.date+' '+b.time)||a.id.localeCompare(b.id));
+    $('counts').textContent=`表示 ${visible.length}件・${visible.filter(r=>r.status!=='cancelled').reduce((n,r)=>n+r.people,0)}名 ／ 全 ${rows.length}件`;
+    if(!visible.length)list.append(node('p',ready?'該当する予約はありません。':'共有履歴を読み込んでいます…','empty'));
+    const pageCount=Math.max(1,Math.ceil(visible.length/pageSize));pageIndex=Math.min(pageIndex,pageCount-1);
+    $('page-state').textContent=(pageIndex+1)+' / '+pageCount+'ページ';$('previous').disabled=pageIndex===0;$('next').disabled=pageIndex>=pageCount-1;
+    $('pager').hidden=pageCount===1;
+    for(const r of visible.slice(pageIndex*pageSize,(pageIndex+1)*pageSize)){
+      const card=node('article',undefined,'reservation'),head=node('div',undefined,'section-top'),title=node('h3',`${r.date} ${r.time}　${r.customerName} 様 · ${r.people}名`);
+      title.append(node('span',labels[r.status],`badge ${r.status}`));head.append(title);card.append(head);
+      card.append(node('p',`${r.course||'コース未指定'} ／ 受付経路：${r.source||'旧版'}${r.contact?'\n連絡先：'+r.contact:''}`,'meta'));
+      if(r.note)card.append(node('p',r.note,'note'));
+      card.append(node('p',`受付：${r.createdBy||'旧版'}（${r.createdAt?new Date(r.createdAt).toLocaleString('ja-JP'):'日時不明'}） ／ 最終更新：${r.updatedBy||r.createdBy||'旧版'}${r.updatedAt?'（'+new Date(r.updatedAt).toLocaleString('ja-JP')+'）':''}`,'meta'));
+      const actions=node('div',undefined,'actions');
+      const edit=node('button','編集','secondary');edit.disabled=!ready||!!pending;edit.onclick=()=>open(r);actions.append(edit);
+      for(const next of ['confirmed','cancelled'])if(r.status!==next){const b=node('button',next==='confirmed'?'確定する':'取消にする','secondary');b.disabled=!ready||!!pending;b.onclick=()=>send({type:'reservation_status',id:r.id,status:next,updatedBy:name,updatedAt:Date.now()},`${r.customerName}様の予約を${labels[next]}`);actions.append(b);}
+      card.append(actions);list.append(card);
+    }
+    controls();
+  }
+  function send(payload,info,close=false){
+    if(!ready||pending)return;
+    const opId=globalThis.crypto?.randomUUID?.()||`${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    pending={opId,close};controls();render();
+    try{
+      message('送信しています。送信間隔の調整により少し待つ場合があります。');
+      transmit({payload:{...payload,opId}}).then(()=>{
+        if(pending)timer=setTimeout(()=>{message('共有履歴への反映をまだ確認できません。入力内容は画面に残しています。予約帳を閉じて開き直し、登録状況を確認してください。');},20000);
+      }).catch(sendFailed);
+    }catch(err){sendFailed(err);}
+  }
+  function sendFailed(err){console.error(err);diag.lastError=errorText(err);pending=null;controls();render();message('送信できませんでした。入力内容を確認し、もう一度保存してください。診断情報：'+diag.lastError);}
+  form.onsubmit=event=>{
+    event.preventDefault();if(!ready||pending||!form.reportValidity())return;
+    const current=editing?rows.find(r=>r.id===editing):null;
+    if(editing&&JSON.stringify(current)!==base){message('この予約は他のスタッフが更新しました。入力内容を控えてから「閉じる」を押し、一覧の最新内容を開き直してください。');return;}
+    const fields=Object.fromEntries(new FormData(form));
+    const date=new Date(fields.date+'T'+fields.time);const now=Date.now();
+    const record={...current,...fields,customerName:fields.customerName.trim(),people:Number(fields.people),id:editing||`res-${globalThis.crypto?.randomUUID?.()||now+'-'+Math.random().toString(36).slice(2)}`,customerAddr:current?.customerAddr||api.selfAddr,createdBy:current?.createdBy||name,createdAt:current?.createdAt||now,updatedBy:name,updatedAt:now,year:date.getFullYear(),month:date.getMonth()+1,day:date.getDate(),hour:date.getHours(),minute:date.getMinutes()};
+    if(!ReservationLedger.valid(record)||!Number.isFinite(date.getTime())){message('お客様名・日時・人数を確認してください。');return;}
+    send({type:editing?'reservation_update':'reservation_create',data:record},`${record.customerName}様 ${record.date} ${record.time} ${editing?'変更':'受付'}`,true);
+  };
+  $('new').onclick=()=>{message('');open(null)};
+  $('close').onclick=()=>{if(!pending){$('editor').hidden=true;editing=null;message('')}};
+  for(const id of ['search','day','status'])$(id).addEventListener('input',()=>{pageIndex=0;render()});
+  $('previous').onclick=()=>{pageIndex=Math.max(0,pageIndex-1);render()};$('next').onclick=()=>{pageIndex++;render()};
+  $('today').onclick=()=>{$('day').value=today();pageIndex=0;render()};$('all').onclick=()=>{$('day').value='';pageIndex=0;render()};
+  $('staff').textContent=`操作スタッフ：${name}`;
+  if(!api||typeof api.setUpdateListener!=='function'||typeof api.sendUpdate!=='function'){
+    $('sync').textContent='共有機能を利用できません';message('Delta Chatのスタッフ専用グループに送信した台帳から開いてください。ブラウザ上では登録できません。');render();return;
+  }
+  // Leave the native Webxdc callback before touching the DOM or form focus.
+  const inbox=[];let flushScheduled=false,historyReady=false;
+  function scheduleFlush(){if(!flushScheduled){flushScheduled=true;setTimeout(flushUpdates,0)}}
+  function flushUpdates(){
+    flushScheduled=false;let count=0;
+    while(inbox.length&&count++<100){
+      const update=inbox.shift();
+      try{
+        diag.received++;diag.lastSerial=update.serial??null;diag.lastType=update.payload?.type||'不明';
+        if(update.payload?.type==='diagnostic_probe')receiveProbe(update.payload);
+        rows=ReservationLedger.reduce(rows,update.payload);
+        if(['reservation_create','reservation_update'].includes(update.payload?.type)&&!ReservationLedger.valid(update.payload.data))diag.rejected++;
+        if(pending&&update.payload?.opId===pending.opId){
+          const close=pending.close;pending=null;clearTimeout(timer);
+          if(close){$('editor').hidden=true;editing=null;form.reset()}
+          message('共有履歴に反映しました。他端末には通信後に反映されます。');
+        }
+      }catch(err){diag.lastError=errorText(err);diag.rejected++;}
+    }
+    if(inbox.length){scheduleFlush();return;}
+    if(historyReady){ready=true;$('sync').textContent='共有履歴を反映済み · 更新 '+(diag.lastSerial??'0');render()}
+    else report();
+  }
+  try{
+    Promise.resolve(api.setUpdateListener(update=>{
+      inbox.push(update);scheduleFlush();
+    },0)).then(()=>{historyReady=true;scheduleFlush()}).catch(failed);
+  }catch(err){failed(err)}
+  function failed(err){console.error(err);diag.lastError=errorText(err);ready=false;$('sync').textContent='共有履歴の読み込みに失敗しました';message('台帳を閉じて開き直してください。履歴を読み込めるまで登録はできません。');render();}
+})();
+
+</script>
+</body></html>
